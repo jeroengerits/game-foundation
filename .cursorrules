@@ -1,0 +1,332 @@
+# .cursorrules
+# Cursor Rules — Senior Godot 4.5 Architect (Repository Constraints)
+#
+# These rules define architectural constraints and code style expectations for this repository.
+# They intentionally exclude workflow, verification, and delivery instructions.
+#
+# Cursor must behave as a Senior Godot Architect and preserve long-term maintainability.
+
+## Core Architectural Principles
+
+- Architecture always takes precedence over feature delivery.
+- All changes must integrate cleanly into existing systems.
+- New patterns are forbidden unless explicitly justified and approved.
+- Systems must be easy to reason about months later.
+- Prefer simple designs first, but ensure they are scale-ready.
+- Prefer composition over inheritance unless inheritance is clearly the simplest stable fit.
+- Every new system must have:
+  - a single responsibility,
+  - a clear owner (module/subsystem),
+  - a clear boundary (what it knows / does not know).
+- Avoid “smart” abstractions. If a system is clever, it’s probably fragile.
+
+---
+
+## Definitive Repository Structure Contract (Godot 4.5)
+
+This repository uses a **structure-first** architecture. Folder boundaries are architectural boundaries.
+
+Cursor must preserve and strengthen this layout. Any change that blurs ownership is forbidden.
+
+### Root Layout
+
+- Engine-owned:
+  - `project.godot`, `export_presets.cfg`, `icon.svg`, `.godot/`
+- Shipped game root:
+  - `res://`
+- Source code root (at repository root):
+  - `src/` — All source code, scenes, scripts organized by domain
+- Non-export roots (keep shipping builds clean):
+  - `tests/`, `tools/`, `build/`, `docs/`
+
+**Forbidden**
+- Creating `res://scenes/`, `res://scripts/`, `res://managers/`, `res://gameplay/`.
+- "Temporary" folders that become permanent dumping grounds.
+- Source code outside `src/` (except `res://addons/` and `res://assets/` as specified).
+
+**Note**: For Godot to access files in `src/`, they must be linked into `res://` (e.g., via symlink `res://src/` → `../src/`) or the project must be configured to include the `src/` directory.
+
+### Folder Ownership and Purpose (Non‑Negotiable)
+
+#### `src/core/` — Foundation Layer
+Owns: bootstrapping, routing, save/load, config, time/tick control, event dispatch.
+
+Rules
+- No gameplay-flavored logic, no feature-specific rules, no content assumptions.
+- Core may depend on `src/shared/` and `src/autoloads/` (interfaces/services).
+- Core must not depend on `src/features/` or `src/content/`.
+- Core is allowed to define cross-project interfaces and contracts.
+
+Typical artifacts
+- App entry / bootstrap scene
+- Scene router / flow controller
+- Save system and serialization layer
+- Global config loader
+- Tick/time authority
+
+#### `src/features/` — Primary Scaling Axis
+Each folder is one isolated feature/domain, owning its scenes, scripts, resources, and local assets.
+
+Rules
+- A feature must be usable as a "module": it should be possible to mount/unmount without breaking unrelated features.
+- Feature → Feature dependency is forbidden unless routed through `shared/` or `core/` contracts.
+- Feature-local assets stay with the feature. Do not promote to `assets/` unless truly global.
+- Feature-specific UI lives inside the feature.
+
+Forbidden
+- Reaching into another feature's internals (scripts, scenes, resources).
+- "Utility dumping" inside a feature that becomes shared usage: move it to `shared/`.
+
+#### `src/shared/` — Reusable Building Blocks
+Reusable utilities, widgets, shared shaders/materials, helpers.
+
+Rule of promotion
+- If used by more than one feature → `shared/`
+- Otherwise → keep feature-local
+
+Rules
+- `shared/` must not depend on any specific feature.
+- `shared/` may define small, stable primitives and helpers, but must not become an alternate `core/`.
+
+#### `src/systems/` — Long‑Lived Runtime Systems
+Always-on runtime logic: simulation loops, AI directors, turn systems, state machines, managers that outlive scenes.
+
+Rules
+- Systems must be feature-agnostic or depend only on feature contracts (interfaces), not feature implementations.
+- Systems must not own content. Systems operate on data provided to them.
+- Systems must be explicit about lifecycle/ownership and stable over time.
+
+Forbidden
+- Systems grabbing nodes by scene paths or feature-specific node names.
+- Systems directly instantiating feature scenes unless routed via a `core/` router/factory contract.
+
+#### `src/ui/` — Global UI Shell
+Owns global UI structure: root screens, HUD shells, navigation, themes.
+
+Rules
+- Global UI is a shell + navigation layer.
+- Feature-specific UI remains inside the feature folder.
+- UI shell may reference features only through stable routes/contracts (e.g., screen IDs), not feature internals.
+
+#### `src/content/` — Data‑First, Designer‑Owned
+Maps, scenarios, prefabs, cutscenes, resource sets.
+
+Hard rule
+- No logic here. Only data, scenes, and resources.
+
+Rules
+- Scripts in `content/` are forbidden unless they are editor-only helpers (then they belong in `addons/` or `tools/`).
+- Content scenes compose feature/shared components without embedding game rules.
+
+#### `res://assets/` — Truly Global Assets Only
+Fonts, global shaders, shared audio, brand art.
+
+Rules
+- Feature-specific assets must live inside that feature (in `src/features/`).
+- `assets/` is not a dumping ground; it must remain the smallest possible set of global identity resources.
+
+#### `res://addons/` — Godot Standard
+Asset Library addons, custom editor tools, plugins.
+
+Rules
+- Editor tooling goes here when it's a Godot plugin.
+- Runtime addon APIs must not leak across the project without an explicit wrapper boundary.
+
+#### `src/autoloads/` — Explicit Singleton Ownership
+Singleton scripts registered in Project Settings.
+
+Rules
+- Autoloads must be few, stable, and discoverable.
+- Autoloads are allowed as composition roots / service locators, not gameplay logic buckets.
+- Any global state must live here explicitly (no hidden globals elsewhere).
+
+### Outside `res://` (Scale Rules)
+
+- `tests/`
+  - Must be excluded from export by default.
+  - Test-only scaffolding must not leak into runtime.
+- `tools/`
+  - Pipelines, scripts, external tooling.
+  - Must not be depended on by runtime gameplay code.
+- `build/`
+  - CI, packaging, release artifacts, export automation.
+- `docs/`
+  - Architecture, onboarding, conventions, ADRs.
+
+---
+
+## Allowed Dependency Direction (No-Spaghetti Graph)
+
+Preferred direction of knowledge:
+- `src/features/` → may use `src/shared/`, `src/systems/` (via interfaces), and `src/core/` APIs
+- `src/ui/` → may use `src/shared/` and `src/core/` routing contracts
+- `src/systems/` → may use `src/shared/`, `src/core/` contracts, and **feature interfaces** (not implementations)
+- `src/core/` → may use `src/shared/` and `src/autoloads/` (interfaces/services), and must remain gameplay-agnostic
+- `src/shared/` → depends on nothing feature-specific
+- `src/content/` → composition only (scenes/resources), no embedded rules
+
+Hard forbiddens:
+- `src/shared/` importing `src/features/`
+- `src/core/` importing `src/features/`
+- Feature A importing Feature B internals
+- `src/content/` containing gameplay logic scripts
+
+---
+
+## Godot-Specific Architectural Rules
+
+- Autoloads are reserved for:
+  - service composition / dependency container,
+  - global configuration,
+  - cross-scene lifecycle coordination.
+- Gameplay logic must not “live” in Autoloads.
+- Scenes are for composition; scripts are for behavior.
+- Prefer data-driven configuration via typed `Resource` types for tunables.
+- Avoid tight coupling to scene tree paths:
+  - do not hardcode `"../../Something"` in gameplay code,
+  - use explicit exported references (`@export var x: NodePath`) or dependency injection (typed).
+- Signals are allowed, but:
+  - signal names use snake_case and communicate intent (`requested_*`, `changed_*`, `completed_*`),
+  - payloads are typed and stable,
+  - signals must not become a hidden global “event bus”.
+- Use groups sparingly; treat groups as integration boundaries, not primary architecture.
+
+---
+
+## Language & Typing Rules (Hard Constraints)
+
+- Use **typed GDScript** everywhere.
+- `Variant` is allowed **only** for optional service dependencies.
+- Avoid dynamic typing, duck typing, or implicit casts.
+- All public methods and members must be typed.
+- Prefer concrete types (`int`, `float`, `String`, `Vector2`, `Node`, etc.) over `Variant` / `Object`.
+- If a value can be absent, model that explicitly:
+  - prefer `T` + a separate `has_value` / `is_valid` concept, or
+  - use `Variant` only for optional service dependencies (as above).
+- No “mystery returns”: return types must be stable and declared.
+
+---
+
+## API Design Rules
+
+- Public APIs must be small, explicit, and difficult to misuse.
+- Do not leak implementation details:
+  - avoid returning internal node references from subsystems unless the boundary explicitly permits it.
+- Avoid “do everything” methods. Prefer:
+  - `request_*` / `try_*` for operations that can fail,
+  - `get_*` only when it is cheap and stable.
+- Errors and failures must be explicit (typed):
+  - prefer `bool` + explicit out-objects (or stored result objects),
+  - or explicit error enums / typed result objects.
+- Avoid side effects in getters.
+
+---
+
+## Dependency Management Rules
+
+- Prefer dependency injection over hidden lookups:
+  - pass dependencies via constructors (`_init`) when possible,
+  - or via explicit `setup()` / `configure()` methods (typed).
+- Any dependency on an Autoload must be behind an interface/service boundary unless the repo standard already dictates otherwise.
+- Dependencies must point “inward”:
+  - leaf gameplay components can depend on services,
+  - services must not depend on leaf scene components.
+
+---
+
+## State and Data Rules
+
+- State must have a single owner.
+- Avoid shared mutable state across subsystems.
+- State that spans scenes must be owned by a stable service layer (not a transient node).
+- Long-lived state must be serializable or reconstructable.
+- Prefer `Resource` for:
+  - configuration,
+  - immutable data,
+  - shared definitions.
+- Prefer plain typed classes for:
+  - runtime state objects.
+
+---
+
+## Scene and Node Responsibilities
+
+- Nodes should be small and focused:
+  - UI nodes handle UI,
+  - gameplay nodes handle gameplay,
+  - services handle global coordination.
+- Do not mix UI and gameplay logic in the same class unless the repository standard already does.
+- Avoid deep node scripts that “know everything” about siblings and parents.
+- Prefer explicit references (`@export`) over runtime discovery.
+
+---
+
+## Performance and Allocation Rules (Architectural)
+
+- Avoid per-frame allocations in `_process` / `_physics_process`.
+- Prefer caching references and computed values where stable.
+- Avoid known pathological patterns:
+  - repeated `get_node()` calls per frame,
+  - repeated scene tree searches (`find_child`, `get_nodes_in_group`) per frame.
+- Use pooling only if the repository already has a standard pool mechanism.
+
+---
+
+## Concurrency and Async Rules
+
+- Avoid introducing async/task patterns unless the repository already uses them.
+- If using threads/timers:
+  - keep ownership clear,
+  - avoid cross-thread scene-tree access,
+  - route results back through a single coordinator.
+
+---
+
+## Code Style Rules (Maintainability)
+
+- Prefer clarity over brevity.
+- Avoid clever one-liners and nested ternaries.
+- Use early returns to reduce indentation.
+- Keep functions short; if a function needs headings/comments, it’s probably too big.
+- Names must communicate intent:
+  - avoid abbreviations unless universal (`ui`, `id`, `fps`).
+- Comments are for “why”, not “what”.
+- Dead code is forbidden.
+
+---
+
+## Documentation and Discoverability
+
+- Each subsystem must have an obvious entry point (single “front door” class or service).
+- Non-trivial classes should have a short header comment describing:
+  - purpose,
+  - key invariants,
+  - what it depends on.
+- Public-facing methods must document invariants and failure modes.
+
+---
+
+## Architecture-Only Testability Expectations
+
+- Systems should be testable by construction:
+  - deterministic inputs,
+  - injectable dependencies,
+  - minimal scene-tree reliance.
+- Avoid hardwiring time, randomness, or globals:
+  - time and RNG must be abstracted behind injectable providers **if the repo already has such a pattern**.
+
+---
+
+## “No New Pattern” Enforcement
+
+If a change requires a new pattern (framework, architecture, global event bus, etc.), it is forbidden by default.
+
+The only valid reasons to introduce a new pattern are:
+- it replaces an existing broken/duplicated pattern,
+- it reduces total complexity across the repo,
+- it aligns with an already-established repository standard.
+
+Any new pattern must include:
+- a migration story,
+- a clear boundary,
+- minimal surface area.
