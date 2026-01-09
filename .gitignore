@@ -1,0 +1,170 @@
+# Godot 4+ specific ignores
+.godot/
+
+# Imported translations (automatically generated from CSV files)
+*.translation
+
+# Mono-specific (C#) ignores
+.mono/
+data_*/
+mono_crash.*.json
+
+# System files (OS-specific)
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# IDE/Editor files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+*.sublime-*
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+Sessionx.vim
+.netrwhist
+*.swp
+*.swo
+*~
+tags
+[._]*.un~
+
+# Visual Studio / Visual Studio Code
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# JetBrains IDEs (IntelliJ, WebStorm, etc.)
+*.iml
+*.ipr
+*.iws
+.idea/*
+!.idea/codeStyles/
+!.idea/encodings.xml
+!.idea/scopes/
+!.idea/shelf/
+!.idea/tasks.xml
+!.idea/inspectionProfiles/
+!.idea/misc.xml
+!.idea/vcs.xml
+!.idea/modules.xml
+!.idea/copyright/
+!.idea/dataSources.ids
+!.idea/dataSources.local.xml
+!.idea/dataSources.xml
+!.idea/sqlDataSources.xml
+!.idea/dynamic.xml
+!.idea/uiDesigner.xml
+
+# Xcode
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+project.xcworkspace/
+xcshareddata/
+*.xcscmblueprint
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.envrc
+.env.backup
+
+# Build/Export artifacts
+export_presets.cfg  # Often contains platform-specific settings - uncomment if you want to share presets
+export/
+builds/
+dist/
+out/
+bin/
+obj/
+
+# Android specific
+/android/
+
+# iOS specific
+/ios/
+
+# Linux specific
+*.x86_64
+*.x86
+*.so
+*.pck
+
+# Windows specific
+*.exe
+*.dll
+*.lib
+
+# macOS specific
+*.dmg
+*.app
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Package manager files (if using Godot package managers)
+# .godot-packages/
+# packages/
+
+# User-specific settings (uncomment if you don't want to share editor settings)
+# .godot/editor/
+
+# Exported scenes/assets (optional - uncomment if you export assets separately)
+# *.export
