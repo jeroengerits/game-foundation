@@ -15,6 +15,11 @@ run/main_scene="res://src/core/main.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[autoload]
+
+Logger="*res://src/autoloads/Logging/logger.gd"
+Events="*res://src/autoloads/Events/events.gd"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
